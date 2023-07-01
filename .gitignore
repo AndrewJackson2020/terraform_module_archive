@@ -1,0 +1,10 @@
+
+
+*.tfstate
+*.tfstate.backup
+*.pyc
+**/.terraform/*
+credentials.csv
+*.pem
+env.sh
+.ssh
