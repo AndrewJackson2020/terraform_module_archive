@@ -1,29 +1,5 @@
 
 
-variable "project" {
-	type = string
-	description = "GCP project name to deploy wiki assets"
-}
-
-
-variable "namespace" {
-	type = string
-	description = "String to append to namespace to ensure uniqueness"
-}
-
-
-variable "domain_name" {
-	type = string
-	description = "GCP project name to deploy wiki assets"
-}
-
-
-variable "allowed_user_emails" {
-	type = list(string)
-	description = "List of allowed users for app"
-}
-
-
 locals {
   region = "us-central1"
   zone = "${local.region}-a"
@@ -115,6 +91,34 @@ resource "google_compute_backend_service" "wiki" {
 	oauth2_client_id = ""
 	oauth2_client_secret = ""
   }
+}
+
+
+resource "google_secret_manager_secret" "pg_username" {
+  secret_id = "pg_username"
+  replication {
+	automatic = true
+  }
+}
+
+
+resource "google_secret_manager_secret" "pg_password" {
+  secret_id = "pg_password"
+  replication {
+	automatic = true
+  }
+}
+
+
+resource "google_secret_manager_secret_version" "pg_username" {
+  secret = google_secret_manager_secret.pg_username.id
+  secret_data = ""
+}
+
+
+resource "google_secret_manager_secret_version" "pg_password" {
+  secret = google_secret_manager_secret.pg_password.id
+  secret_data = ""
 }
 
 
