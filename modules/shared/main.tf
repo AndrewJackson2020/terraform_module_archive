@@ -7,8 +7,9 @@ variable "project" {
 
 
 resource "google_project_service" "project" {
+  for_each = toset(["compute.googleapis.com", "iap.googleapis.com"])
   project = var.project
-  service = "compute.googleapis.com"
+  service = each.value
   disable_on_destroy = false
 }
 
