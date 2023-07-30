@@ -6,15 +6,17 @@ variable "project" {
 }
 
 
-variable "project" {
+variable "postgres_username" {
 	type = string
-	description = "GCP project name to deploy wiki assets"
+	description = "Superuser name for Postgres"
+	sensitive = true
 }
 
 
-variable "project" {
+variable "postgres_password" {
 	type = string
-	description = "GCP project name to deploy wiki assets"
+	description = "Superuser password for Postgres"
+	sensitive = true
 }
 
 

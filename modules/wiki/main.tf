@@ -4,7 +4,14 @@ locals {
   region = "us-central1"
   zone = "${local.region}-a"
   port_name = "http"
-  startup_script = file("${path.module}/startup_script.sh")
+  startup_script = templatefile(
+	"${path.module}/startup_script.sh", 
+	{
+		data_directory = "$${data_directory}",
+		postgres_username = var.postgres_username,
+		postgres_password = var.postgres_password	 
+	}
+  )
 }
 
 
@@ -94,32 +101,39 @@ resource "google_compute_backend_service" "wiki" {
 }
 
 
-resource "google_secret_manager_secret" "pg_username" {
-  secret_id = "pg_username"
-  replication {
-	automatic = true
-  }
-}
+# TODO Secret manager is a more secure way to facilitate password and username to
+#		containers. Problem is that the containers need to have custom entrypoint
+# 		in order to use this service. Not worth it right now. Kubernetes might be
+# 		a more legit way to accomplish this in a cloud agnostic way
 
-
-resource "google_secret_manager_secret" "pg_password" {
-  secret_id = "pg_password"
-  replication {
-	automatic = true
-  }
-}
-
-
-resource "google_secret_manager_secret_version" "pg_username" {
-  secret = google_secret_manager_secret.pg_username.id
-  secret_data = ""
-}
-
-
-resource "google_secret_manager_secret_version" "pg_password" {
-  secret = google_secret_manager_secret.pg_password.id
-  secret_data = ""
-}
+# resource "google_secret_manager_secret" "pg_username" {
+#   project = var.project
+#   secret_id = "pg_username"
+#   replication {
+# 	automatic = true
+#   }
+# }
+# 
+# 
+# resource "google_secret_manager_secret" "pg_password" {
+#   project = var.project
+#   secret_id = "pg_password"
+#   replication {
+# 	automatic = true
+#   }
+# }
+# 
+# 
+# resource "google_secret_manager_secret_version" "pg_username" {
+#   secret = google_secret_manager_secret.pg_username.id
+#   secret_data = var.postgres_username
+# }
+# 
+# 
+# resource "google_secret_manager_secret_version" "pg_password" {
+#   secret = google_secret_manager_secret.pg_password.id
+#   secret_data = var.postgres_password
+# }
 
 
 resource "google_compute_disk" "wiki" {
@@ -190,6 +204,7 @@ resource "google_compute_instance_template" "wiki" {
   // boot disk
   disk {
     source = google_compute_disk.wiki.name
+	auto_delete = false
   }
   service_account {
     # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
