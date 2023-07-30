@@ -1,8 +1,5 @@
 
 
-# TODO: Add access allowed list for IAP
-
-
 variable "project" {
 	type = string
 	description = "GCP project name to deploy wiki assets"
