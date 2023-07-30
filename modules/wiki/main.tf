@@ -28,7 +28,7 @@ locals {
   region = "us-central1"
   zone = "${local.region}-a"
   port_name = "http"
-  startup_script = templatefile("${path.module}/startup_script.sh", { })
+  startup_script = file("${path.module}/startup_script.sh")
 }
 
 
