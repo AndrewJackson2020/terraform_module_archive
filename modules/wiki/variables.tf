@@ -13,6 +13,19 @@ variable "postgres_username" {
 }
 
 
+variable "pomerium_client_secret" {
+	type = string
+	description = "Client secret to use in pomerium Google OAuth"
+	sensitive = true
+}
+
+
+variable "pomerium_client_id" {
+	type = string
+	description = "Client ID to use in pomerium Google OAuth"
+}
+
+
 variable "postgres_password" {
 	type = string
 	description = "Superuser password for Postgres"
@@ -31,6 +44,11 @@ variable "domain_name" {
 	description = "GCP project name to deploy wiki assets"
 }
 
+
+variable "auth_url" {
+	type = string
+	description = "URL to access auth"
+}
 
 variable "allowed_user_emails" {
 	type = list(string)

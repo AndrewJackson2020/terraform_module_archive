@@ -1,0 +1,25 @@
+# See detailed configuration settings: https://www.pomerium.com/docs/reference/
+
+#####################################################################
+# If self-hosting, use the localhost authenticate service URL below #
+# and remove the hosted URL.                                        #
+#####################################################################
+# authenticate_service_url: https://authenticate.localhost.pomerium.io
+
+authenticate_service_url: "${auth_url}"
+
+####################################################################################
+# If self-hosting, you must configure an identity provider.                        #
+# See identity provider settings: https://www.pomerium.com/docs/identity-providers/#
+####################################################################################
+
+# https://pomerium.com/reference/#routes
+routes:
+  - from: "${wiki_url}"
+    to: http://localhost:3000
+    policy:
+      - allow:
+          or:
+            - email:
+                is: andrewjackson2988@gmail.com
+    pass_identity_headers: true

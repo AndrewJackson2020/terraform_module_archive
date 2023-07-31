@@ -4,12 +4,23 @@ locals {
   region = "us-central1"
   zone = "${local.region}-a"
   port_name = "http"
+  application_port = "443"
+  pomerium_config = templatefile(
+	"${path.module}/pomerium_config.yaml",
+	{
+	  wiki_url = "https://${var.domain_name}"
+	  auth_url = "https://${var.auth_url}"
+	}
+  )
   startup_script = templatefile(
 	"${path.module}/startup_script.sh", 
 	{
 		data_directory = "$${data_directory}",
 		postgres_username = var.postgres_username,
 		postgres_password = var.postgres_password	 
+		pomerium_client_secret = var.pomerium_client_secret
+		pomerium_client_id = var.pomerium_client_id
+		pomerium_config = local.pomerium_config 
 	}
   )
 }
@@ -27,7 +38,8 @@ resource "google_compute_managed_ssl_certificate" "wiki" {
   project = var.project
   name = var.namespace
   managed {
-    domains = [var.domain_name]
+    domains = [
+		var.domain_name, var.auth_url]
   }
 }
 
@@ -37,7 +49,7 @@ resource "google_compute_global_forwarding_rule" "wiki" {
   name = var.namespace
   ip_protocol = "TCP"
   load_balancing_scheme = "EXTERNAL"
-  port_range = "443"
+  port_range = local.application_port
   target = google_compute_target_https_proxy.wiki.id
   ip_address = google_compute_global_address.wiki.id
 }
@@ -57,46 +69,27 @@ resource "google_compute_global_address" "wiki" {
 }
 
 
-resource "google_compute_http_health_check" "wiki" {
+resource "google_compute_https_health_check" "wiki" {
   project = var.project
   name = var.namespace
-  request_path = "/healthz"
-  port = 3000
+  request_path = "/ping"
+  port = local.application_port
   check_interval_sec = 1
   timeout_sec = 1
 } 
 
 
-data "google_iam_policy" "wiki" {
-    binding {
-        role = "roles/iap.httpsResourceAccessor"
-        members = var.allowed_user_emails
-    }
-}
-
-
-resource "google_iap_web_backend_service_iam_policy" "wiki" {
-    project = "${google_compute_backend_service.wiki.project}"
-    web_backend_service = "${google_compute_backend_service.wiki.name}"
-    policy_data = "${data.google_iam_policy.wiki.policy_data}"
-}
-
-
 resource "google_compute_backend_service" "wiki" {
   name = var.namespace
   project = var.project
-  protocol = "HTTP"
+  protocol = "HTTPS"
   port_name = local.port_name
   load_balancing_scheme = "EXTERNAL"
-  health_checks = [google_compute_http_health_check.wiki.id]
+  health_checks = [google_compute_https_health_check.wiki.id]
   backend {
     group = google_compute_instance_group.wiki.id
     balancing_mode = "UTILIZATION"
     capacity_scaler = 1.0
-  }
-  iap {
-	oauth2_client_id = ""
-	oauth2_client_secret = ""
   }
 }
 
@@ -154,7 +147,7 @@ resource "google_compute_instance_group" "wiki" {
   ]
   named_port {
     name = local.port_name
-    port = "3000"
+    port = "443"
   }
   zone = local.zone
   # network = "projects/${var.project}/global/networks/default"
@@ -165,7 +158,7 @@ resource "google_compute_instance_group" "wiki" {
 resource "google_compute_instance_from_template" "wiki" {
   tags = [var.namespace]
   project = var.project
-  name = "instance-from-template"
+  name = var.namespace
   zone = local.zone
   source_instance_template = google_compute_instance_template.wiki.id
 }
@@ -243,7 +236,7 @@ resource "google_compute_firewall" "health_check_rule" {
   name = "${var.namespace}-health"
   allow {
     protocol = "tcp"
-    ports = ["3000"]
+    ports = [local.application_port]
   }
   target_tags = [var.namespace]
   source_ranges = ["35.191.0.0/16", "130.211.0.0/22"]
