@@ -13,6 +13,7 @@ ${pomerium_config}
 EOF
 
 docker run \
+	--rm \
 	--name some-postgres \
 	--env POSTGRES_USER="${postgres_username}" \
 	--env POSTGRES_PASSWORD="${postgres_password}" \
@@ -22,6 +23,7 @@ docker run \
 	postgres
 
 docker run \
+	--rm \
 	--name=wikijs \
 	--volume "${data_directory}/config:/config" \
 	--volume "${data_directory}/wiki_data:/data" \
@@ -36,6 +38,7 @@ docker run \
 	requarks/wiki
 
 docker run \
+	--rm \
 	--name pomerium \
 	--env IDP_PROVIDER="google" \
 	--env IDP_CLIENT_ID="${pomerium_client_id}" \
