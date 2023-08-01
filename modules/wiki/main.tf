@@ -26,71 +26,10 @@ locals {
 }
 
 
-resource "google_compute_target_https_proxy" "wiki" {
-  project = var.project
-  name = var.namespace
-  url_map = google_compute_url_map.wiki.id
-  ssl_certificates = [google_compute_managed_ssl_certificate.wiki.id]
-}
-
-
-resource "google_compute_managed_ssl_certificate" "wiki" {
-  project = var.project
-  name = var.namespace
-  managed {
-    domains = [
-		var.domain_name, var.auth_url]
-  }
-}
-
-
-resource "google_compute_global_forwarding_rule" "wiki" {
-  project = var.project
-  name = var.namespace
-  ip_protocol = "TCP"
-  load_balancing_scheme = "EXTERNAL"
-  port_range = local.application_port
-  target = google_compute_target_https_proxy.wiki.id
-  ip_address = google_compute_global_address.wiki.id
-}
-
-
-resource "google_compute_url_map" "wiki" {
-  project = var.project
-  name = var.namespace
-  default_service = google_compute_backend_service.wiki.id
-}
-
-
 resource "google_compute_global_address" "wiki" {
   project = var.project
   address_type = "EXTERNAL"
   name = var.namespace
-}
-
-
-resource "google_compute_https_health_check" "wiki" {
-  project = var.project
-  name = var.namespace
-  request_path = "/ping"
-  port = local.application_port
-  check_interval_sec = 1
-  timeout_sec = 1
-} 
-
-
-resource "google_compute_backend_service" "wiki" {
-  name = var.namespace
-  project = var.project
-  protocol = "HTTPS"
-  port_name = local.port_name
-  load_balancing_scheme = "EXTERNAL"
-  health_checks = [google_compute_https_health_check.wiki.id]
-  backend {
-    group = google_compute_instance_group.wiki.id
-    balancing_mode = "UTILIZATION"
-    capacity_scaler = 1.0
-  }
 }
 
 
@@ -138,23 +77,6 @@ resource "google_compute_disk" "wiki" {
 }
 
 
-resource "google_compute_instance_group" "wiki" {
-  project = var.project
-  name = var.namespace
-  description = var.namespace 
-  instances = [
-    google_compute_instance_from_template.wiki.self_link,
-  ]
-  named_port {
-    name = local.port_name
-    port = "443"
-  }
-  zone = local.zone
-  # network = "projects/${var.project}/global/networks/default"
-  network = google_compute_network.wiki.id 
-}
-
-
 resource "google_compute_instance_from_template" "wiki" {
   tags = [var.namespace]
   project = var.project
@@ -191,7 +113,7 @@ resource "google_compute_instance_template" "wiki" {
     network = var.namespace
 	subnetwork = google_compute_subnetwork.wiki.self_link
     access_config {
-      // Ephemeral public IP
+      nat_ip = "${google_compute_global_address.wiki.address}"
     }
   }
   // boot disk
@@ -239,6 +161,6 @@ resource "google_compute_firewall" "health_check_rule" {
     ports = [local.application_port]
   }
   target_tags = [var.namespace]
-  source_ranges = ["35.191.0.0/16", "130.211.0.0/22"]
+  source_ranges = ["0.0.0.0/0"]
 }
 
